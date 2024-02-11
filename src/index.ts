@@ -18,15 +18,20 @@ const CountrySchema = z.object({
 
 type Country = z.infer<typeof CountrySchema>
 
-const rawData = filesystem.readFileSync(`${__dirname}/../database.json`, "utf-8")
-
-const countries: Country = JSON.parse(rawData)
+const readFile = () => {
+    const rawData = filesystem.readFileSync(`${__dirname}/../database.json`, "utf-8")
+    
+    const countries: Country[] = JSON.parse(rawData)
+    return countries
+}
 
 server.get("/api/countries", (req, res) => {
     const result = QueryParamSchema.safeParse(req.query)
     if(!result.success) {
         return res.status(400).json(result.error.issues);
     }
+    const countries = readFile()
+
     const queryParams = result.data
     
     const filteredCountries = countries.filter(country => country.population > queryParams.min && country.population < queryParams.max)
@@ -39,9 +44,18 @@ server.post("/api/countries", (req, res) => {
     if(!result.success) {
         return res.status(400).json(result.error.issues);
     }
+    const rawData = filesystem.readFileSync(`${__dirname}/../database.json`, "utf-8")
+    
+    const countries: Country[] = JSON.parse(rawData)
+    
     const country = result.data
 
     countries.push(country)
+
+    filesystem.writeFileSync(
+        `${__dirname}/../database.json`,
+        JSON.stringify(countries)
+    );
 
     res.sendStatus(200)
 });

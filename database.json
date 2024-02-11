@@ -1,10 +1,1 @@
-[
-    {
-        "name": "Hungary",
-        "population": 9500000
-    },
-    {
-        "name": "Austria",
-        "population": 12500000
-    }
-]
+[{"name": "Hungary","population": 9500000},{"name": "Austria","population": 12500000}{"name": "Switzerland","population": 500000000},{"name": "Spain","population": 25000000}]
