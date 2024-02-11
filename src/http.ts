@@ -1,7 +1,7 @@
 import http from "http"
+//import o2x from "object-to-xml"
 
-const server = http
-    .createServer((req, res) => {
+const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         if(req.url === "/api/countries") {
             return res.end(
@@ -12,10 +12,11 @@ const server = http
         }
         if(req.url === "/api/cities") {
             return res.end(
-                JSON.stringify({
-                 data: ["Helsinki", "Coppenhagen"]
-                 })
-             );
+                ({
+                    data: ["Helsinki", "Coppenhagen"]
+                })
+             )
+            return res.end(`{"data": [""]}`)
         }
 
         res.end(

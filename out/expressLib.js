@@ -5,15 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = __importDefault(require("http"));
 const express = () => {
-    //let getRequestURL = "";
-    //let responseData: any = null;
-    let getRequestURLs = [];
-    let responseDatas = [];
+    let mapping = {};
     const server = http_1.default.createServer((req, res) => {
         res.writeHead(200, { "Content-Type": "applications/json" });
-        if (getRequestURLs.includes(req.url)) {
-            let index = getRequestURLs.indexOf(req.url);
-            return res.end(JSON.stringify(responseDatas[index]));
+        if (mapping[req.url]) {
+            return res.end(JSON.stringify(mapping[req.url]));
         }
         res.end(JSON.stringify({
             data: "invalid url"
@@ -21,12 +17,9 @@ const express = () => {
     });
     return {
         get: (url, requestListenerFunction) => {
-            //getRequestURL = url;
-            getRequestURLs = [...getRequestURLs, url];
             requestListenerFunction(null, {
                 json: (data) => {
-                    //responseData = data;
-                    responseDatas = [...responseDatas, data];
+                    mapping[url] = data;
                 }
             });
         },
