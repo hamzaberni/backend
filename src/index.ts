@@ -12,6 +12,12 @@ const QueryParamSchema = z.object({
 });
 
 const CountrySchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    population: z.number()
+});
+
+const CreateCountrySchema = z.object({
     name: z.string(),
     population: z.number()
 });
@@ -41,23 +47,58 @@ server.get("/api/countries", async (req, res) => {
 
 
 server.post("/api/countries", async (req, res) => {
-    const result = CountrySchema.safeParse(req.body)
+    const result = CreateCountrySchema.safeParse(req.body)
     if(!result.success) {
         return res.status(400).json(result.error.issues)
     };
     
-    const countries = await readFile()
-
-    const country = result.data
-
-    countries.push(country)
+    const countries = await readFile();
+    
+    const randomNumber = Math.random();
+    countries.push({ ...result.data, id: Math.random()});
 
     await filesystem.writeFile(
         `${__dirname}/../database.json`,
         JSON.stringify(countries, null, 2)
     );
 
-    res.sendStatus(200)
+    res.json({id: randomNumber});
+});
+
+server.delete(`/api/countries/:id`, async (req, res) => {
+    const id = +req.params.id
+    const countries = await readFile()
+    const filteredCountries = countries.filter(
+        (country) => country.id !== id)
+
+    await filesystem.writeFile(
+        `${__dirname}/../countries.json`,
+        JSON.stringify(filteredCountries, null, 2)
+    );
+    res.sendStatus(200);
+});
+
+server.patch(`/api/countries/:id`, async (req, res) => {
+    const id = +req.params.id
+    const countries = await readFile();
+    let countryToUpdate = countries.find(country => country.id === id);
+    if(!countryToUpdate) return res.sendStatus(404);
+    
+    const result = CreateCountrySchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json(result.error.issues);
+
+    const updatedCountries = countries.map(country => {
+        if(country.id === id) {
+            return { ...result.data, id}
+        }
+        return country;
+    });
+
+    await filesystem.writeFile(
+        `${__dirname}/../countries.json`,
+        JSON.stringify(updatedCountries, null, 2)
+    );
+    res.sendStatus(200);
 });
 
 server.listen(4001)
