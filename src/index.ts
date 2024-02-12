@@ -2,6 +2,7 @@ import express, { raw } from "express"
 import {z} from "zod"
 import filesystem from "fs/promises"
 
+
 const server = express();
 
 server.use(express.json());
@@ -25,11 +26,14 @@ const CreateCountrySchema = z.object({
 type Country = z.infer<typeof CountrySchema>
 
 const readFile = async () => {
-    const rawData = await filesystem.readFile(`${__dirname}/../database.json`, "utf-8")
-    
-    const countries: Country[] = JSON.parse(rawData)
-    return countries
-}
+    try {
+        const rawData = await filesystem.readFile(`${__dirname}/../database.json`, "utf-8")
+        const countries: Country[] = JSON.parse(rawData)
+        return countries
+    } catch (error) {
+        return null
+    }
+};
 
 server.get("/api/countries", async (req, res) => {
     const result = QueryParamSchema.safeParse(req.query)
@@ -37,10 +41,20 @@ server.get("/api/countries", async (req, res) => {
         return res.status(400).json(result.error.issues);
     }
     const countries = await readFile()
+    if (countries === null) {
+        res.sendStatus(500)
+        return
+    }
 
     const queryParams = result.data
     
-    const filteredCountries = countries.filter(country => country.population > queryParams.min && country.population < queryParams.max)
+    const filteredCountries = countries.filter(country => {
+        return (
+            country.population > queryParams.min &&
+            country.population < queryParams.max
+        )
+    });
+        //country.population > queryParams.min && country.population < queryParams.max
 
     res.json(filteredCountries)
 });
@@ -52,7 +66,11 @@ server.post("/api/countries", async (req, res) => {
         return res.status(400).json(result.error.issues)
     };
     
-    const countries = await readFile();
+    const countries = await readFile()
+    if (countries === null) {
+        res.sendStatus(500)
+        return
+    }
     
     const randomNumber = Math.random();
     countries.push({ ...result.data, id: Math.random()});
@@ -68,11 +86,15 @@ server.post("/api/countries", async (req, res) => {
 server.delete(`/api/countries/:id`, async (req, res) => {
     const id = +req.params.id
     const countries = await readFile()
+    if (countries === null) {
+        res.sendStatus(500)
+        return
+    }
     const filteredCountries = countries.filter(
         (country) => country.id !== id)
 
     await filesystem.writeFile(
-        `${__dirname}/../countries.json`,
+        `${__dirname}/../database.json`,
         JSON.stringify(filteredCountries, null, 2)
     );
     res.sendStatus(200);
@@ -80,7 +102,11 @@ server.delete(`/api/countries/:id`, async (req, res) => {
 
 server.patch(`/api/countries/:id`, async (req, res) => {
     const id = +req.params.id
-    const countries = await readFile();
+    const countries = await readFile()
+    if (countries === null) {
+        res.sendStatus(500)
+        return
+    }
     let countryToUpdate = countries.find(country => country.id === id);
     if(!countryToUpdate) return res.sendStatus(404);
     
@@ -95,7 +121,7 @@ server.patch(`/api/countries/:id`, async (req, res) => {
     });
 
     await filesystem.writeFile(
-        `${__dirname}/../countries.json`,
+        `${__dirname}/../database.json`,
         JSON.stringify(updatedCountries, null, 2)
     );
     res.sendStatus(200);
