@@ -1,6 +1,6 @@
 import express, { raw } from "express"
 import {z} from "zod"
-import filesystem from "fs"
+import filesystem from "fs/promises"
 
 const server = express();
 
@@ -18,19 +18,19 @@ const CountrySchema = z.object({
 
 type Country = z.infer<typeof CountrySchema>
 
-const readFile = () => {
-    const rawData = filesystem.readFileSync(`${__dirname}/../database.json`, "utf-8")
+const readFile = async () => {
+    const rawData = await filesystem.readFile(`${__dirname}/../database.json`, "utf-8")
     
     const countries: Country[] = JSON.parse(rawData)
     return countries
 }
 
-server.get("/api/countries", (req, res) => {
+server.get("/api/countries", async (req, res) => {
     const result = QueryParamSchema.safeParse(req.query)
     if(!result.success) {
         return res.status(400).json(result.error.issues);
     }
-    const countries = readFile()
+    const countries = await readFile()
 
     const queryParams = result.data
     
@@ -39,22 +39,22 @@ server.get("/api/countries", (req, res) => {
     res.json(filteredCountries)
 });
 
-server.post("/api/countries", (req, res) => {
+
+server.post("/api/countries", async (req, res) => {
     const result = CountrySchema.safeParse(req.body)
     if(!result.success) {
-        return res.status(400).json(result.error.issues);
-    }
-    const rawData = filesystem.readFileSync(`${__dirname}/../database.json`, "utf-8")
+        return res.status(400).json(result.error.issues)
+    };
     
-    const countries: Country[] = JSON.parse(rawData)
-    
+    const countries = await readFile()
+
     const country = result.data
 
     countries.push(country)
 
-    filesystem.writeFileSync(
+    await filesystem.writeFile(
         `${__dirname}/../database.json`,
-        JSON.stringify(countries)
+        JSON.stringify(countries, null, 2)
     );
 
     res.sendStatus(200)
